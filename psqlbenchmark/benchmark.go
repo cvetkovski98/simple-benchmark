@@ -26,6 +26,16 @@ func GenerateBigSerialLoad(count int, ch chan<- *BigSerialModel) {
 	}
 }
 
+func GenerateNanosecondLoad(count int, ch chan<- *NanosecondModel) {
+	for i := 0; i < count; i++ {
+		t := time.Now()
+		ch <- &NanosecondModel{
+			CreatedAtSeconds: uint64(t.Unix()),
+			CreatedAtNanos:   uint32(t.Nanosecond()),
+		}
+	}
+}
+
 func InsertOneTimestamped(ctx context.Context, db *bun.DB, model *TimestampedModel) error {
 	if _, err := db.NewInsert().Model(model).Exec(ctx); err != nil {
 		return err
@@ -41,6 +51,13 @@ func InsertOneUUID(ctx context.Context, db *bun.DB, model *UUIDModel) error {
 }
 
 func InsertOneBigSerial(ctx context.Context, db *bun.DB, model *BigSerialModel) error {
+	if _, err := db.NewInsert().Model(model).Exec(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func InsertOneNanosecond(ctx context.Context, db *bun.DB, model *NanosecondModel) error {
 	if _, err := db.NewInsert().Model(model).Exec(ctx); err != nil {
 		return err
 	}
@@ -84,6 +101,20 @@ func TimestampedInserter(ctx context.Context, db *bun.DB, models <-chan *Timesta
 		select {
 		case model := <-models:
 			if err := InsertOneTimestamped(ctx, db, model); err != nil {
+				panic(err)
+			}
+		case <-time.After(100 * time.Millisecond):
+			done <- true
+		}
+	}
+}
+
+func NanosecondInserter(ctx context.Context, db *bun.DB, models <-chan *NanosecondModel, done chan<- bool) {
+	fmt.Println("NanosecondInserter started...")
+	for {
+		select {
+		case model := <-models:
+			if err := InsertOneNanosecond(ctx, db, model); err != nil {
 				panic(err)
 			}
 		case <-time.After(100 * time.Millisecond):
