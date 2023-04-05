@@ -23,6 +23,6 @@ type TimestampedModel struct {
 
 type NanosecondModel struct {
 	bun.BaseModel    `bun:"nanosecond_model,alias:nanosecond_model"`
-	CreatedAtSeconds uint64 `bun:"created_at_seconds,nullzero,notnull,type:bigint"`
-	CreatedAtNanos   uint32 `bun:"created_at_nanos,nullzero,notnull,type:int"`
+	CreatedAtSeconds int64 `bun:"created_at_seconds,notnull,type:bigint"`
+	CreatedAtNanos   int   `bun:"created_at_nanos,notnull,type:bigint"`
 }

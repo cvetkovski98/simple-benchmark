@@ -29,10 +29,11 @@ func GenerateBigSerialLoad(count int, ch chan<- *BigSerialModel) {
 func GenerateNanosecondLoad(count int, ch chan<- *NanosecondModel) {
 	for i := 0; i < count; i++ {
 		t := time.Now()
-		ch <- &NanosecondModel{
-			CreatedAtSeconds: uint64(t.Unix()),
-			CreatedAtNanos:   uint32(t.Nanosecond()),
+		m := &NanosecondModel{
+			CreatedAtSeconds: t.Unix(),
+			CreatedAtNanos:   t.Nanosecond(),
 		}
+		ch <- m
 	}
 }
 
@@ -59,6 +60,7 @@ func InsertOneBigSerial(ctx context.Context, db *bun.DB, model *BigSerialModel) 
 
 func InsertOneNanosecond(ctx context.Context, db *bun.DB, model *NanosecondModel) error {
 	if _, err := db.NewInsert().Model(model).Exec(ctx); err != nil {
+		fmt.Printf("InsertOneNanosecond failed with: %v for model: %v\n", err, model)
 		return err
 	}
 	return nil
@@ -74,6 +76,7 @@ func BigSerialInserter(ctx context.Context, db *bun.DB, models <-chan *BigSerial
 				panic(err)
 			}
 		case <-time.After(100 * time.Millisecond):
+			fmt.Println("BigSerialInserter done")
 			done <- true
 		}
 	}
@@ -115,10 +118,51 @@ func NanosecondInserter(ctx context.Context, db *bun.DB, models <-chan *Nanoseco
 		select {
 		case model := <-models:
 			if err := InsertOneNanosecond(ctx, db, model); err != nil {
-				panic(err)
+				fmt.Printf("Error inserting nanosecond model: %v, model: %v", err, model)
 			}
 		case <-time.After(100 * time.Millisecond):
+			fmt.Println("NanosecondInserter done")
 			done <- true
+		}
+	}
+}
+
+// BigSerialReader runs a read query on the database every second and queries the last 1000 rows
+func BigSerialReader(ctx context.Context, db *bun.DB, done <-chan bool) {
+	fmt.Println("BigSerialReader started...")
+	for {
+		select {
+		case <-done:
+			fmt.Println("BigSerialReader done")
+			return
+		case <-time.After(1 * time.Second):
+			var models []*BigSerialModel
+			if err := db.NewSelect().Model(&models).Order("id DESC").Limit(1000).Scan(ctx); err != nil {
+				panic(err)
+			}
+			fmt.Println("BigSerialReader read", len(models), "rows")
+		}
+	}
+}
+
+// NanoReader runs a read query on the database every second and queries the last 1000 rows
+func NanoReader(ctx context.Context, db *bun.DB, done <-chan bool) {
+	fmt.Println("NanoReader started...")
+	for {
+		select {
+		case <-done:
+			fmt.Println("NanoReader done")
+			return
+		case <-time.After(500 * time.Millisecond):
+			var models []*NanosecondModel
+			if err := db.NewSelect().
+				Model(&models).
+				Order("created_at_seconds DESC", "created_at_nanos DESC").
+				Limit(1000).
+				Scan(ctx); err != nil {
+				panic(err)
+			}
+			fmt.Println("NanoReader read", len(models), "rows")
 		}
 	}
 }

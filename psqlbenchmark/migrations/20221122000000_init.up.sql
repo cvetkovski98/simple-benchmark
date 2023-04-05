@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS timestamped_model (
 );
 CREATE TABLE IF NOT EXISTS nanosecond_model (
   created_at_seconds BIGINT NOT NULL,
-  created_at_nanos INT NOT NULL
+  created_at_nanos BIGINT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_uuid_model_id ON uuid_model USING btree(id);
 CREATE INDEX IF NOT EXISTS idx_big_serial_model_id ON big_serial_model USING btree(id);

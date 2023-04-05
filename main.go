@@ -19,7 +19,7 @@ func main() {
 		panic(err)
 	}
 	var N = 4
-	var M = 1000
+	var M = 10
 	var modelsPerWorker = 300
 
 	// Create the necessary communication channels
@@ -27,7 +27,12 @@ func main() {
 	var uuidModels = make(chan *psqlbenchmark.UUIDModel)
 	var bigserialModels = make(chan *psqlbenchmark.BigSerialModel)
 	var nanosecondModels = make(chan *psqlbenchmark.NanosecondModel)
+	var doneReaders = make(chan bool)
 	var done = make(chan bool)
+
+	// Start a reader that will read the models from the database
+	go psqlbenchmark.BigSerialReader(ctx, db, doneReaders)
+	// go psqlbenchmark.NanoReader(ctx, db, doneReaders)
 
 	var start = time.Now()
 	// Generate the load from M workers
@@ -46,23 +51,19 @@ func main() {
 		// go psqlbenchmark.NanosecondInserter(ctx, db, nanosecondModels, done)
 	}
 
-	// Wait for all workers to finish
+	// Wait for all workers and readers to finish
 	for i := 0; i < N; i++ {
 		<-done
 	}
+	doneReaders <- true
 
 	var elapsed = time.Since(start)
 	println("Elapsed time:", elapsed)
 
-	// Close the channels
 	close(timestampedModels)
 	close(uuidModels)
 	close(bigserialModels)
 	close(nanosecondModels)
+	close(doneReaders)
 	close(done)
-
-	// Close the database connection
-	if err := db.Close(); err != nil {
-		panic(err)
-	}
 }
