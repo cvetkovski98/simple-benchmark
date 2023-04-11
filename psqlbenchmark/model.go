@@ -11,9 +11,16 @@ type UUIDModel struct {
 	ID            string `bun:"id,nullzero,notnull,pk,type:uuid,default:gen_random_uuid()"`
 }
 
+type IdentityModel struct {
+	bun.BaseModel `bun:"identity_model,alias:identity_model"`
+	ID            int64  `bun:"id,nullzero,notnull,pk,identity,type:bigint"`
+	Type          string `bun:"type,nullzero,notnull,type:varchar(16)"`
+}
+
 type BigSerialModel struct {
-	bun.BaseModel `bun:"big_serial_model,alias:big_serial_model"`
-	ID            int64 `bun:"id,nullzero,notnull,pk,identity,type:bigint"`
+	bun.BaseModel `bun:"bigserial_model,alias:bigserial_model"`
+	ID            int64  `bun:"id,nullzero,notnull,type:bigserial"`
+	Type          string `bun:"type,nullzero,notnull,type:varchar(16)"`
 }
 
 type TimestampedModel struct {

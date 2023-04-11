@@ -19,18 +19,20 @@ func main() {
 		panic(err)
 	}
 	var N = 4
-	var M = 10
+	var M = 1000
 	var modelsPerWorker = 300
 
 	// Create the necessary communication channels
 	var timestampedModels = make(chan *psqlbenchmark.TimestampedModel)
 	var uuidModels = make(chan *psqlbenchmark.UUIDModel)
-	var bigserialModels = make(chan *psqlbenchmark.BigSerialModel)
+	var identityModels = make(chan *psqlbenchmark.IdentityModel)
+	var bigSerialModels = make(chan *psqlbenchmark.BigSerialModel)
 	var nanosecondModels = make(chan *psqlbenchmark.NanosecondModel)
 	var doneReaders = make(chan bool)
 	var done = make(chan bool)
 
 	// Start a reader that will read the models from the database
+	// go psqlbenchmark.IdentityReader(ctx, db, doneReaders)
 	go psqlbenchmark.BigSerialReader(ctx, db, doneReaders)
 	// go psqlbenchmark.NanoReader(ctx, db, doneReaders)
 
@@ -39,7 +41,8 @@ func main() {
 	for i := 0; i < M; i++ {
 		// go psqlbenchmark.GenerateTimestampedLoad(modelsPerWorker, timestampedModels)
 		// go psqlbenchmark.GenerateUUIDLoad(modelsPerWorker, uuidModels)
-		go psqlbenchmark.GenerateBigSerialLoad(modelsPerWorker, bigserialModels)
+		// go psqlbenchmark.GenerateIdentityLoad(modelsPerWorker, identityModels)
+		go psqlbenchmark.GenerateBigSerialLoad(modelsPerWorker, bigSerialModels)
 		// go psqlbenchmark.GenerateNanosecondLoad(modelsPerWorker, nanosecondModels)
 	}
 
@@ -47,7 +50,8 @@ func main() {
 	for i := 0; i < N; i++ {
 		// go psqlbenchmark.TimestampedInserter(ctx, db, timestampedModels, done)
 		// go psqlbenchmark.UUIDInserter(ctx, db, uuidModels, done)
-		go psqlbenchmark.BigSerialInserter(ctx, db, bigserialModels, done)
+		// go psqlbenchmark.IdentityInserter(ctx, db, identityModels, done)
+		go psqlbenchmark.BigSerialInserter(ctx, db, bigSerialModels, done)
 		// go psqlbenchmark.NanosecondInserter(ctx, db, nanosecondModels, done)
 	}
 
@@ -62,7 +66,8 @@ func main() {
 
 	close(timestampedModels)
 	close(uuidModels)
-	close(bigserialModels)
+	close(identityModels)
+	close(bigSerialModels)
 	close(nanosecondModels)
 	close(doneReaders)
 	close(done)
